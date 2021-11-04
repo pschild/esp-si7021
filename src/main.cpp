@@ -20,7 +20,7 @@
   #error "Missing VERSION"
 #endif
 
-const String CHIP_ID = String("ESP_") + String(ESP.getChipId());
+const String CHIP_ID = String(ESP.getChipId());
 const String CLIENT_NAME = String("ESP_") + CHIP_ID;
 
 const String dhtChannel = String("devices/") + CHIP_ID + String("/dht");
