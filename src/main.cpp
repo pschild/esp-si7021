@@ -21,14 +21,14 @@
 #endif
 
 const String CHIP_ID = String("ESP_") + String(ESP.getChipId());
+const String CLIENT_NAME = String("ESP_") + CHIP_ID;
 
 const String dhtChannel = String("devices/") + CHIP_ID + String("/dht");
-const String tempChannel = String("devices/") + CHIP_ID + String("/temp");
-const String humChannel = String("devices/") + CHIP_ID + String("/hum");
+const String tempChannel = String("devices/") + CHIP_ID + String("/temperature");
+const String humChannel = String("devices/") + CHIP_ID + String("/humidity");
 const String voltageChannel = String("devices/") + CHIP_ID + String("/voltage");
-const String debugChannel = String("devices/") + CHIP_ID + String("/debug");
 
-// void ping();
+void ping();
 void publishValues();
 void startDeepSleep();
 void ledTurnOn();
@@ -39,10 +39,9 @@ void onMqttConnected();
 void onMqttMessage(char* topic, char* message);
 
 WifiHandler wifiHandler(WIFI_SSID, WIFI_PASSWORD);
-MqttHandler mqttHandler("192.168.178.28", CHIP_ID);
+MqttHandler mqttHandler("192.168.178.28", CLIENT_NAME);
 OTAUpdateHandler updateHandler("192.168.178.28:9042", VERSION);
 
-// Ticker pingTimer(ping, 60 * 1000);
 Ticker deepSleepTimer(startDeepSleep, 15 * 1000); // start deepsleep 15s after boot
 
 Adafruit_Si7021 sensor = Adafruit_Si7021();
@@ -60,7 +59,6 @@ void setup() {
   mqttHandler.setup();
   mqttHandler.setOnConnectedCallback(onMqttConnected);
   mqttHandler.setOnMessageCallback(onMqttMessage);
-  // pingTimer.start();
 
   // start OTA update immediately
   updateHandler.startUpdate();
@@ -69,7 +67,6 @@ void setup() {
 void loop() {
   mqttHandler.loop();
   updateHandler.loop();
-  // pingTimer.update();
   deepSleepTimer.update();
 }
 
@@ -81,15 +78,14 @@ void ledTurnOff() {
   digitalWrite(LED_BUILTIN, HIGH);
 }
 
-/*void ping() {
-  const String channel = String("devices/") + CHIP_ID + String("/version");
+void ping() {
+  const String channel = String("devices/") + CHIP_ID + String("/ping");
   mqttHandler.publish(channel.c_str(), VERSION);
-}*/
+}
 
 void publishVoltageLevel() {
   float volts = ESP.getVcc();
   mqttHandler.publish(voltageChannel.c_str(), String(volts / 1024.00f).c_str());
-  mqttHandler.publish(debugChannel.c_str(), String(volts).c_str());
 }
 
 String buildJsonDoc(float temperature, float humidity) {
@@ -129,17 +125,22 @@ void onOtaUpdate(char* payload) {
 
 void onMqttConnected() {
   mqttHandler.subscribe("foo/+/baz");
-  mqttHandler.subscribe("otaUpdate/all");
 
+  const String otaDeviceChannel = String("ota/") + CHIP_ID;
+  mqttHandler.subscribe(otaDeviceChannel.c_str());
+  const String otaAllDevicesChannel = "ota/all";
+  mqttHandler.subscribe(otaAllDevicesChannel.c_str());
+
+  ping();
   publishVoltageLevel();
   publishValues();
   deepSleepTimer.start(); // start deep sleep timer to allow enough time for the values to be sent
 }
 
 void onMqttMessage(char* topic, char* message) {
-  if (((std::string) topic).rfind("foo/", 0) == 0) {
+  if (String(topic).startsWith("foo/")) {
     onFooBar(message);
-  } else if (strcmp(topic, "otaUpdate/all") == 0) {
+  } else if (String(topic).startsWith("ota/")) {
     onOtaUpdate(message);
   }
 }
