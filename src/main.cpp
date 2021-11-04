@@ -83,11 +83,6 @@ void ping() {
   mqttHandler.publish(channel.c_str(), VERSION);
 }
 
-void publishVoltageLevel() {
-  float volts = ESP.getVcc();
-  mqttHandler.publish(voltageChannel.c_str(), String(volts / 1024.00f).c_str());
-}
-
 String buildJsonDoc(float temperature, float humidity) {
   StaticJsonDocument<64> jsonDoc;
   jsonDoc["temperature"] = temperature;
@@ -97,12 +92,25 @@ String buildJsonDoc(float temperature, float humidity) {
   return output;
 }
 
+String buildJsonDocSingle(String key, float value) {
+  StaticJsonDocument<64> jsonDoc;
+  jsonDoc[key] = value;
+  String output;
+  serializeJson(jsonDoc, output);
+  return output;
+}
+
+void publishVoltageLevel() {
+  float volts = ESP.getVcc();
+  mqttHandler.publish(voltageChannel.c_str(), buildJsonDocSingle("value", volts / 1024.00f).c_str());
+}
+
 void publishValues() {
   float humidity = sensor.readHumidity();
   float temperature = sensor.readTemperature();
 
-  mqttHandler.publish(tempChannel.c_str(), String(temperature).c_str());
-  mqttHandler.publish(humChannel.c_str(), String(humidity).c_str());
+  mqttHandler.publish(tempChannel.c_str(), buildJsonDocSingle("value", temperature).c_str());
+  mqttHandler.publish(humChannel.c_str(), buildJsonDocSingle("value", humidity).c_str());
   mqttHandler.publish(dhtChannel.c_str(), buildJsonDoc(temperature, humidity).c_str());
 }
 
