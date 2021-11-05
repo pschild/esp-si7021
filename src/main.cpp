@@ -33,6 +33,7 @@ void publishValues();
 void startDeepSleep();
 void ledTurnOn();
 void ledTurnOff();
+void onHeaterChange(char* payload);
 void onFooBar(char* payload);
 void onOtaUpdate(char* payload);
 void onMqttConnected();
@@ -115,8 +116,17 @@ void publishValues() {
 }
 
 void startDeepSleep() {
-  ESP.deepSleep(15 * 60e6); // sleep for 15min
-  delay(100);
+  // ESP.deepSleep(15 * 60e6); // sleep for 15min
+  // delay(100);
+}
+
+void onHeaterChange(char* payload) {
+  if (strcmp(payload, "on") == 0) {
+    // sensor.setHeatLevel(SI_HEATLEVEL_HIGHEST);
+    sensor.heater(true);
+  } else if (strcmp(payload, "off") == 0) {
+    sensor.heater(false);
+  }
 }
 
 void onFooBar(char* payload) {
@@ -139,10 +149,13 @@ void onMqttConnected() {
   const String otaAllDevicesChannel = "ota/all";
   mqttHandler.subscribe(otaAllDevicesChannel.c_str());
 
+  const String heaterChannel = String("devices/") + CHIP_ID + String("/heater");
+  mqttHandler.subscribe(heaterChannel.c_str());
+
   ping();
   publishVoltageLevel();
   publishValues();
-  deepSleepTimer.start(); // start deep sleep timer to allow enough time for the values to be sent
+  // deepSleepTimer.start(); // start deep sleep timer to allow enough time for the values to be sent
 }
 
 void onMqttMessage(char* topic, char* message) {
@@ -150,5 +163,10 @@ void onMqttMessage(char* topic, char* message) {
     onFooBar(message);
   } else if (String(topic).startsWith("ota/")) {
     onOtaUpdate(message);
+  } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/heater"))) {
+    onHeaterChange(message);
+  } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/readnow"))) {
+    publishVoltageLevel();
+    publishValues();
   }
 }
