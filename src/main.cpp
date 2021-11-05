@@ -152,6 +152,9 @@ void onMqttConnected() {
   const String heaterChannel = String("devices/") + CHIP_ID + String("/heater");
   mqttHandler.subscribe(heaterChannel.c_str());
 
+  const String readnowChannel = String("devices/") + CHIP_ID + String("/readnow");
+  mqttHandler.subscribe(readnowChannel.c_str());
+
   ping();
   publishVoltageLevel();
   publishValues();
