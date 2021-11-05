@@ -159,13 +159,16 @@ void onMqttConnected() {
 }
 
 void onMqttMessage(char* topic, char* message) {
+  mqttHandler.publish(String("debug/onMqttMessage").c_str(), topic);
   if (String(topic).startsWith("foo/")) {
     onFooBar(message);
   } else if (String(topic).startsWith("ota/")) {
     onOtaUpdate(message);
   } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/heater"))) {
+    mqttHandler.publish(String("debug/heater").c_str(), message);
     onHeaterChange(message);
   } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/readnow"))) {
+    mqttHandler.publish(String("debug/readnow").c_str(), topic);
     publishVoltageLevel();
     publishValues();
   }
