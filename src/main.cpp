@@ -162,7 +162,6 @@ void onMqttConnected() {
 }
 
 void onMqttMessage(char* topic, char* message) {
-  mqttHandler.publish(String("debug/onMqttMessage").c_str(), topic);
   if (String(topic).startsWith("foo/")) {
     onFooBar(message);
   } else if (String(topic).startsWith("ota/")) {
