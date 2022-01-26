@@ -28,6 +28,12 @@ const String tempChannel = String("devices/") + CHIP_ID + String("/temperature")
 const String humChannel = String("devices/") + CHIP_ID + String("/humidity");
 const String voltageChannel = String("devices/") + CHIP_ID + String("/voltage");
 
+/**
+ * Set this to `true` if the Chip should sleep 15min, then wake up, publish measurements and sleep again.
+ * Set this to `false` if the Chip should not sleep and be always active. You then can use the readnow-channel to read measurements.
+ */
+const bool USE_DEEP_SLEEP = true;
+
 void ping();
 void publishValues();
 void startDeepSleep();
@@ -116,8 +122,10 @@ void publishValues() {
 }
 
 void startDeepSleep() {
-  // ESP.deepSleep(15 * 60e6); // sleep for 15min
-  // delay(100);
+  if (USE_DEEP_SLEEP) {
+    ESP.deepSleep(15 * 60e6); // sleep for 15min
+    delay(100);
+  }
 }
 
 void onHeaterChange(char* payload) {
@@ -158,7 +166,10 @@ void onMqttConnected() {
   ping();
   publishVoltageLevel();
   publishValues();
-  // deepSleepTimer.start(); // start deep sleep timer to allow enough time for the values to be sent
+
+  if (USE_DEEP_SLEEP) {
+    deepSleepTimer.start(); // start deep sleep timer to allow enough time for the values to be sent
+  }
 }
 
 void onMqttMessage(char* topic, char* message) {
@@ -167,10 +178,8 @@ void onMqttMessage(char* topic, char* message) {
   } else if (String(topic).startsWith("ota/")) {
     onOtaUpdate(message);
   } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/heater"))) {
-    mqttHandler.publish(String("debug/heater").c_str(), message);
     onHeaterChange(message);
   } else if (String(topic).equals(String("devices/") + CHIP_ID + String("/readnow"))) {
-    mqttHandler.publish(String("debug/readnow").c_str(), topic);
     publishVoltageLevel();
     publishValues();
   }
